@@ -59,7 +59,7 @@ def scrape(category,resolution,page_number=10):
 def main():
     category = 'nature'
     resolution = '1920x1080'
-    scrape(category,resolution,30)
+    scrape(category,resolution,100)
 
 if __name__ == '__main__':
     main()

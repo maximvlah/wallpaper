@@ -24,22 +24,28 @@ import pandas as pd
 import pickle
 from tqdm import tqdm
 
-path = r"C:\Users\maxim\OneDrive\Desktop\projects\wallpaper\photos"
-# change the working directory to the path where the images are located
-os.chdir(path)
 
-# this list holds all the image filename
-photos = []
+def get_filepaths_by_extension(path, ext):
+    '''
+        Get list of all filepaths with a specific extension within the given directory and all its subdirectories
+    '''
+    paths = []
 
-# creates a ScandirIterator aliased as files
-with os.scandir(path) as files:
-  # loops through each file in the directory
-    for file in files:
-        if file.name.endswith('.jpg'):
-          # adds only the image files to the photos list
-            photos.append(file.name)
-            
-            
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            #append the file name to the list
+            new_path = os.path.join(root,file)
+            if new_path[-len(ext):].lower() == ext:
+                paths.append(new_path)
+
+    paths = [path.replace('\\','/') for path in paths]
+
+    return paths
+
+path = 'photos'
+
+#get photos paths
+photos = get_filepaths_by_extension(path,'.jpg')
             
 model = VGG16()
 model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
@@ -58,7 +64,7 @@ def extract_features(file, model):
     return features
    
 data = {}
-p = r"C:\Users\maxim\OneDrive\Desktop\projects\wallpaper\data"
+p = 'data'
 
 # lop through each image in the dataset
 for photo in tqdm(photos):
@@ -66,11 +72,8 @@ for photo in tqdm(photos):
     try:
         feat = extract_features(photo,model)
         data[photo] = feat
-    # if something fails, save the extracted features as a pickle file (optional)
     except:
-        with open(p,'wb') as file:
-            pickle.dump(data,file)
-          
+        pass
  
 # get a list of the filenames
 filenames = np.array(list(data.keys()))
@@ -81,13 +84,8 @@ feat = np.array(list(data.values()))
 # reshape so that there are 210 samples of 4096 vectors
 feat = feat.reshape(-1,4096)
 
-# # get the unique labels (from the photo_labels.csv)
-# df = pd.read_csv('photo_labels.csv')
-# label = df['label'].tolist()
-# unique_labels = list(set(label))
-
 # reduce the amount of dimensions in the feature vector
-pca = PCA(n_components=100, random_state=22)
+pca = PCA(n_components=100, random_state=42)
 pca.fit(feat)
 x = pca.transform(feat)
 
@@ -103,37 +101,6 @@ for file, cluster in zip(filenames,kmeans.labels_):
         groups[cluster].append(file)
     else:
         groups[cluster].append(file)
-
-# function that lets you view a cluster (based on identifier)        
-def view_cluster(cluster):
-    plt.figure(figsize = (25,25));
-    # gets the list of filenames for a cluster
-    files = groups[cluster]
-    # only allow up to 30 images to be shown at a time
-    if len(files) > 30:
-        print(f"Clipping cluster size from {len(files)} to 30")
-        files = files[:29]
-    # plot each image in the cluster
-    for index, file in enumerate(files):
-        plt.subplot(10,10,index+1);
-        img = load_img(file)
-        img = np.array(img)
-        plt.imshow(img)
-        plt.axis('off')
-        
-   
-# # this is just in case you want to see which value for k might be the best 
-# sse = []
-# list_k = list(range(3, 50))
-
-# for k in list_k:
-#     km = KMeans(n_clusters=k, random_state=22, n_jobs=-1)
-#     km.fit(x)
-    
-#     sse.append(km.inertia_)
-
-# # Plot sse against k
-# plt.figure(figsize=(6, 6))
-# plt.plot(list_k, sse)
-# plt.xlabel(r'Number of clusters *k*')
-# plt.ylabel('Sum of squared distance');
+#save groups
+with open('data/clusters.pkl','wb') as f:
+    pickle.dump(groups,f) 
