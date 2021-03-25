@@ -1,7 +1,3 @@
-'''
-    Download wallpapers in the desired resolution from the wallpaperscraft.com
-'''
-
 import os
 import time
 import ntpath
@@ -61,15 +57,12 @@ def scrape(category,resolution,page_number=10):
 
             # download the image
             urllib.request.urlretrieve(src, f'photos/{ntpath.basename(src)}')
-
     driver.close()
-
 
 def main():
     category = 'nature'
     resolution = '1920x1080'
     scrape(category,resolution,10)
-
 
 if __name__ == '__main__':
     main()
